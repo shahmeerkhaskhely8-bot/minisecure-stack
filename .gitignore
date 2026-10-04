@@ -1,0 +1,30 @@
+# Isabelle session build outputs
+/output/
+/heaps/
+/browser_info/
+/.isabelle/
+*.heap
+*.log
+*.db
+*.db-shm
+*.db-wal
+*.tar.gz
+
+# Isabelle/jEdit and editor backups
+*.thy~
+*.thy.orig
+*.thy.rej
+*~
+*.swp
+*.swo
+
+# VS Code workspace-local state
+/.vscode/
+/.history/
+
+# Operating-system and temporary files
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.tmp
+*.bak

@@ -1,0 +1,69 @@
+name: Isabelle
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: isabelle-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build MiniSecureStack
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Download Isabelle2025-2
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/Isabelle2025-2_linux.tar.gz"
+          curl --fail --location --retry 3 --retry-delay 2 \
+            'https://isabelle.in.tum.de/website-Isabelle2025-2/dist/Isabelle2025-2_linux.tar.gz' \
+            --output "$archive"
+          echo 'a20a507bc7c1270d8be96a9f3fbec06345387789d2dc2c4d3df6260d47bfb33c  '"$archive" \
+            | sha256sum --check --strict
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          echo "ISABELLE_HOME=$RUNNER_TEMP/Isabelle2025-2" >> "$GITHUB_ENV"
+
+      - name: Verify Isabelle installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$ISABELLE_HOME/bin/isabelle" version
+
+      - name: Build Isabelle session
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$ISABELLE_HOME/bin/isabelle" build -v -D . MiniSecureStack \
+            2>&1 | tee "$RUNNER_TEMP/isabelle-build.log"
+          echo 'Isabelle build exit code: 0'
+          {
+            echo '### Isabelle build'
+            echo
+            echo 'Session `MiniSecureStack` built successfully (exit code 0).'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Isabelle build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isabelle-build-log
+          path: ${{ runner.temp }}/isabelle-build.log
+          if-no-files-found: ignore
+          retention-days: 14
